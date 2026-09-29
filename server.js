@@ -7,6 +7,12 @@ const PORT = Number(process.env.PORT) || 3000;
 const FILES = { "/": ["index.html", "text/html; charset=utf-8"], "/index.html": ["index.html", "text/html; charset=utf-8"] };
 http.createServer((req, res) => {
   const url = req.url.split("?")[0];
+  // Send www.sourmilkstudioos.com visitors to the main address.
+  const host = String(req.headers.host || "").toLowerCase();
+  if (host.startsWith("www.")) {
+    res.writeHead(301, { Location: "https://" + host.slice(4) + req.url });
+    return res.end();
+  }
   if (url === "/robots.txt") { res.writeHead(200, { "Content-Type": "text/plain" }); return res.end("User-agent: *\nAllow: /\n\nSitemap: https://sourmilkstudioos.com/sitemap.xml\n"); }
   if (url === "/sitemap.xml") {
     return fs.readFile(path.join(__dirname, "sitemap.xml"), (err, data) => {
