@@ -18,7 +18,7 @@
 {"@type":"Organization","@id":"https://sourmilkstudioos.com/#org","name":"Sour Milk Studios","url":"https://sourmilkstudioos.com/","email":"sourmilkstudios1@gmail.com","sameAs":["https://www.instagram.com/sourmilkstudios_official"]},
 {"@type":"WebSite","name":"Sour Milk Studios","url":"https://sourmilkstudioos.com/","publisher":{"@id":"https://sourmilkstudioos.com/#org"}},
 {"@type":"VideoGame","name":"Dino Rampage","url":"https://dinorampage.sourmilkstudioos.com/","gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","description":"Eat, grow and rampage as a dinosaur on a prehistoric island. Play online with friends.","author":{"@id":"https://sourmilkstudioos.com/#org"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}},
-{"@type":"VideoGame","name":"Ocean Bound","url":"https://oceanbound.sourmilkstudioos.com/","gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","description":"A cozy fishing, boating and island adventure. Explore, fish, build and discover.","author":{"@id":"https://sourmilkstudioos.com/#org"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+{"@type":"VideoGame","name":"Ocean Bound","url":"https://oceanbound.sourmilkstudioos.com/","trailer":{"@type":"VideoObject","name":"Ocean Bound – Official Gameplay Trailer","description":"Official gameplay trailer for Ocean Bound, a free fishing and island adventure game by Sour Milk Studios.","thumbnailUrl":"https://sourmilkstudioos.com/media/ocean-bound-trailer.jpg","contentUrl":"https://sourmilkstudioos.com/media/ocean-bound-trailer.mp4","uploadDate":"2026-10-05","duration":"PT10S"},"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","description":"A cozy fishing, boating and island adventure. Explore, fish, build and discover.","author":{"@id":"https://sourmilkstudioos.com/#org"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
 ]}
 </script>
 <meta property="og:title" content="Sour Milk Studios">
@@ -148,6 +148,9 @@ section{padding-block:clamp(48px,8vw,84px)}
 .shot{border-radius:22px;overflow:hidden;border:5px solid var(--milk);box-shadow:0 12px 30px rgba(58,36,19,.18)}
 .shot img{width:100%}
 .shot figcaption{background:var(--milk);font-size:.82rem;color:var(--ink-soft);padding:8px 12px 4px;font-weight:800}
+.trailer{border-radius:22px;overflow:hidden;border:5px solid var(--milk);box-shadow:0 12px 30px rgba(58,36,19,.18);background:#06131f;max-width:960px;width:100%;justify-self:center}
+.trailer video{display:block;width:100%;aspect-ratio:16/9;background:#06131f}
+.trailer figcaption{background:var(--milk);font-size:.85rem;color:var(--ink-soft);padding:8px 12px 4px;font-weight:800}
 .cta-band{border-radius:32px;padding:clamp(28px,5vw,48px);display:grid;gap:14px;justify-items:center;text-align:center;color:var(--milk)}
 .cta-band h3{font-size:clamp(2rem,5vw,3rem);-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-shadow:0 4px 0 var(--ink)}
 .cta-band.dino{background:linear-gradient(135deg,#2F7A21,#5DA83A)}
@@ -403,12 +406,19 @@ footer{background:var(--ink);color:var(--sand);padding-block:48px 24px}
       <p>Set sail across a bright ocean full of islands, rare fish and hidden treasure. Build up your home and explore everything the seas have to offer.</p>
       <div class="row">
         <a class="btn play big" id="play_ocean_bound_hero" data-track="play_ocean_bound" href="https://oceanbound.sourmilkstudioos.com/" target="_blank" rel="noopener noreferrer">Play now <span class="arr">→</span></a>
-        <span class="btn ghost" role="link" aria-disabled="true" title="The trailer link will be added when it's released">▶ Watch trailer · soon</span>
+        <a class="btn ghost" id="watch_trailer_ocean_bound" data-track="watch_trailer_ocean_bound" href="#ocean-bound-trailer">▶ Watch trailer</a>
       </div>
     </div>
   </div>
   <section>
     <div class="wrap" style="display:grid;gap:clamp(40px,6vw,64px)">
+      <figure class="trailer" id="oceanTrailer" style="margin:0">
+        <video id="oceanTrailerVideo" controls playsinline preload="metadata" poster="/media/ocean-bound-trailer.jpg">
+          <source src="/media/ocean-bound-trailer.mp4" type="video/mp4">
+          Your browser can't play this video. <a href="/media/ocean-bound-trailer.mp4">Open the trailer</a>.
+        </video>
+        <figcaption>Ocean Bound · Official gameplay trailer</figcaption>
+      </figure>
       <div class="feats">
         <div class="feat"><b class="ocean-t">FISH</b><span>300+ species to catch</span></div>
         <div class="feat"><b class="ocean-t">EXPLORE</b><span>Eight biomes to sail</span></div>
@@ -645,6 +655,19 @@ document.getElementById("copyEmail").addEventListener("click", () => {
   try { navigator.clipboard.writeText(addr).then(() => say("Email copied"), fallback); } catch (e) { fallback(); }
   track("email_copy");
 });
+
+/* ---------- Ocean Bound trailer ---------- */
+(function(){
+  const btn = document.getElementById("watch_trailer_ocean_bound"), vid = document.getElementById("oceanTrailerVideo");
+  if (!btn || !vid) return;
+  btn.addEventListener("click", e => {
+    e.preventDefault();
+    document.getElementById("oceanTrailer").scrollIntoView({behavior: "smooth", block: "center"});
+    const p = vid.play(); if (p && p.catch) p.catch(() => {});
+  });
+  vid.addEventListener("play", () => track("trailer_play", {game: "ocean-bound"}), {once: true});
+  window.addEventListener("hashchange", () => { if (!vid.paused) vid.pause(); });
+})();
 </script>
 
 </body>
