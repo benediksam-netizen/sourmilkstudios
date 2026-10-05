@@ -17,7 +17,7 @@
 {"@context":"https://schema.org","@graph":[
 {"@type":"Organization","@id":"https://sourmilkstudioos.com/#org","name":"Sour Milk Studios","url":"https://sourmilkstudioos.com/","email":"sourmilkstudios1@gmail.com","sameAs":["https://www.instagram.com/sourmilkstudios_official"]},
 {"@type":"WebSite","name":"Sour Milk Studios","url":"https://sourmilkstudioos.com/","publisher":{"@id":"https://sourmilkstudioos.com/#org"}},
-{"@type":"VideoGame","name":"Dino Rampage","url":"https://dinorampage.sourmilkstudioos.com/","gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","description":"Eat, grow and rampage as a dinosaur on a prehistoric island. Play online with friends.","author":{"@id":"https://sourmilkstudioos.com/#org"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}},
+{"@type":"VideoGame","name":"Dino Rampage","url":"https://dinorampage.sourmilkstudioos.com/","trailer":{"@type":"VideoObject","name":"Dino Rampage – Official Trailer","description":"Official trailer for Dino Rampage: Eat & Grow!, a free dinosaur game by Sour Milk Studios. Eat to grow, then battle other dinos.","thumbnailUrl":"https://sourmilkstudioos.com/media/dino-rampage-trailer.jpg","contentUrl":"https://sourmilkstudioos.com/media/dino-rampage-trailer.mp4","uploadDate":"2026-10-05","duration":"PT10S"},"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","description":"Eat, grow and rampage as a dinosaur on a prehistoric island. Play online with friends.","author":{"@id":"https://sourmilkstudioos.com/#org"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}},
 {"@type":"VideoGame","name":"Ocean Bound","url":"https://oceanbound.sourmilkstudioos.com/","trailer":{"@type":"VideoObject","name":"Ocean Bound – Official Gameplay Trailer","description":"Official gameplay trailer for Ocean Bound, a free fishing and island adventure game by Sour Milk Studios.","thumbnailUrl":"https://sourmilkstudioos.com/media/ocean-bound-trailer.jpg","contentUrl":"https://sourmilkstudioos.com/media/ocean-bound-trailer.mp4","uploadDate":"2026-10-05","duration":"PT10S"},"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","description":"A cozy fishing, boating and island adventure. Explore, fish, build and discover.","author":{"@id":"https://sourmilkstudioos.com/#org"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
 ]}
 </script>
@@ -359,12 +359,19 @@ footer{background:var(--ink);color:var(--sand);padding-block:48px 24px}
       <p>Take control of powerful dinosaurs. Eat to grow, evolve into stronger dinos and rule the prehistoric island with your friends.</p>
       <div class="row">
         <a class="btn play big" id="play_dino_rampage_hero" data-track="play_dino_rampage" href="https://dinorampage.sourmilkstudioos.com/" target="_blank" rel="noopener noreferrer">Play now <span class="arr">→</span></a>
-        <span class="btn ghost" role="link" aria-disabled="true" title="The trailer link will be added when it's released">▶ Watch trailer · soon</span>
+        <a class="btn ghost" id="watch_trailer_dino_rampage" data-track="watch_trailer_dino_rampage" href="#dino-rampage-trailer">▶ Watch trailer</a>
       </div>
     </div>
   </div>
   <section>
     <div class="wrap" style="display:grid;gap:clamp(40px,6vw,64px)">
+      <figure class="trailer" id="dinoTrailer" style="margin:0">
+        <video id="dinoTrailerVideo" controls playsinline preload="metadata" poster="/media/dino-rampage-trailer.jpg">
+          <source src="/media/dino-rampage-trailer.mp4" type="video/mp4">
+          Your browser can't play this video. <a href="/media/dino-rampage-trailer.mp4">Open the trailer</a>.
+        </video>
+        <figcaption>Dino Rampage · Official trailer</figcaption>
+      </figure>
       <div class="feats">
         <div class="feat"><b class="dino-t">EAT</b><span>Get bigger and stronger</span></div>
         <div class="feat"><b class="dino-t">GROW</b><span>Level up and unlock new dinos</span></div>
@@ -656,18 +663,19 @@ document.getElementById("copyEmail").addEventListener("click", () => {
   track("email_copy");
 });
 
-/* ---------- Ocean Bound trailer ---------- */
-(function(){
-  const btn = document.getElementById("watch_trailer_ocean_bound"), vid = document.getElementById("oceanTrailerVideo");
+/* ---------- Game trailers ---------- */
+[["watch_trailer_ocean_bound", "oceanTrailer", "oceanTrailerVideo", "ocean-bound"],
+ ["watch_trailer_dino_rampage", "dinoTrailer", "dinoTrailerVideo", "dino-rampage"]].forEach(([btnId, boxId, vidId, game]) => {
+  const btn = document.getElementById(btnId), vid = document.getElementById(vidId);
   if (!btn || !vid) return;
   btn.addEventListener("click", e => {
     e.preventDefault();
-    document.getElementById("oceanTrailer").scrollIntoView({behavior: "smooth", block: "center"});
+    document.getElementById(boxId).scrollIntoView({behavior: "smooth", block: "center"});
     const p = vid.play(); if (p && p.catch) p.catch(() => {});
   });
-  vid.addEventListener("play", () => track("trailer_play", {game: "ocean-bound"}), {once: true});
+  vid.addEventListener("play", () => track("trailer_play", {game: game}), {once: true});
   window.addEventListener("hashchange", () => { if (!vid.paused) vid.pause(); });
-})();
+});
 </script>
 
 </body>
