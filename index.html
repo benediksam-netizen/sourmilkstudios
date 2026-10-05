@@ -55,6 +55,8 @@ h1,h2,h3,h4{font-family:var(--display);font-weight:400;line-height:1.05;letter-s
 .btn:active{transform:translateY(2px);box-shadow:0 1px 0 #d9c9a8}
 .btn.small{padding:9px 16px;font-size:.8rem}
 .btn.ghost{background:rgba(255,253,247,.18);color:var(--milk);box-shadow:inset 0 0 0 2px rgba(255,253,247,.8)}
+.btn.logi{background:#0E7C86;color:var(--milk);box-shadow:0 4px 0 #095A61}
+.btn.logi:active{box-shadow:0 1px 0 #095A61}
 .btn[aria-disabled="true"]{opacity:.7;cursor:default}
 .btn[aria-disabled="true"]:hover{transform:none}
 .play{position:relative;background:linear-gradient(180deg,#FFD84D,var(--gold) 55%,var(--orange));color:var(--ink);font-size:1rem;padding:14px 26px;box-shadow:0 5px 0 #B86400,0 0 0 0 rgba(255,191,31,.0);animation:glow 2.4s ease-in-out infinite}
@@ -632,6 +634,7 @@ footer{background:var(--ink);color:var(--sand);padding-block:48px 24px}
       <p>Run a shipping company in a living world economy. Start with two small ships, carry cargo between ten islands and grow into a global business. Play solo, or team up with up to three friends and race other teams online.</p>
       <div class="row">
         <a class="btn play big" id="play_sour_milk_logistics_hero" data-track="play_sour_milk_logistics" href="https://logistics.sourmilkstudioos.com/" target="_blank" rel="noopener noreferrer">Play now <span class="arr">→</span></a>
+        <a class="btn ghost" id="read_guide_sour_milk_logistics_hero" data-track="read_guide_sour_milk_logistics" href="/media/sour-milk-logistics-guide.pdf" target="_blank" rel="noopener">Read the guide</a>
       </div>
     </div>
   </div>
@@ -666,6 +669,18 @@ footer{background:var(--ink);color:var(--sand);padding-block:48px 24px}
           <p>Normal mode keeps the focus on shipping, trading and building your own factories. Pro mode adds the full stock and bond market, central banks and company takeovers. A guided tutorial with our milk-carton mascot starts with every new game.</p>
         </div>
         <figure class="shot" style="margin:0"><img src="/media/sour-milk-logistics-modes.webp" alt="Sour Milk Logistics title screen with the choice between Normal mode and Pro mode" loading="lazy" width="1600" height="900"></figure>
+      </div>
+      <div class="split" id="sour-milk-logistics-guide">
+        <a class="shot" style="margin:0;display:block" id="read_guide_sour_milk_logistics_cover" data-track="read_guide_sour_milk_logistics" href="/media/sour-milk-logistics-guide.pdf" target="_blank" rel="noopener" aria-label="Open the Sour Milk Logistics tutorial and finance study guide (PDF)"><img src="/media/sour-milk-logistics-guide.webp" alt="The cover and two inside pages of the Sour Milk Logistics tutorial and finance study guide" loading="lazy" width="1600" height="900"></a>
+        <div class="copy">
+          <span class="eyebrow">Learn before you play</span>
+          <h3 class="logi-t">Tutorial and finance study guide</h3>
+          <p>A free 20-page guide to read before your first game. It walks through all 13 tutorial steps with screenshots, explains the rules the game runs on, and turns them into ten finance lessons with formulas, worked examples and practice questions. Made for players, students and lecturers.</p>
+          <div class="row">
+            <a class="btn logi" id="read_guide_sour_milk_logistics" data-track="read_guide_sour_milk_logistics" href="/media/sour-milk-logistics-guide.pdf" target="_blank" rel="noopener">Read the guide <span class="arr">→</span></a>
+            <span style="font-size:.85rem;font-weight:800;color:var(--ink-soft)">PDF · 20 pages · 5.5 MB</span>
+          </div>
+        </div>
       </div>
       <div class="cta-band logi">
         <h3>Your trade empire starts here!</h3>

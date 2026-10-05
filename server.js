@@ -4,7 +4,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const PORT = Number(process.env.PORT) || 3000;
-const MEDIA_TYPES = { ".mp4": "video/mp4", ".webm": "video/webm", ".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
+const MEDIA_TYPES = { ".mp4": "video/mp4", ".webm": "video/webm", ".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".pdf": "application/pdf" };
 const FILES = { "/": ["index.html", "text/html; charset=utf-8"], "/index.html": ["index.html", "text/html; charset=utf-8"] };
 http.createServer((req, res) => {
   const url = req.url.split("?")[0];
@@ -21,7 +21,7 @@ http.createServer((req, res) => {
       res.writeHead(200, { "Content-Type": "application/xml; charset=utf-8" }); res.end(data);
     });
   }
-  // Videos and images in /media (supports seeking, which phones need to play video).
+  // Videos, images and PDF guides in /media (supports seeking, which phones need to play video).
   if (url.startsWith("/media/")) {
     const name = path.basename(url);
     const type = MEDIA_TYPES[path.extname(name).toLowerCase()];
