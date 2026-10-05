@@ -14,6 +14,8 @@ http.createServer((req, res) => {
     res.writeHead(301, { Location: "https://" + host.slice(4) + req.url });
     return res.end();
   }
+  // Google AdSense: authorised seller list (https://sourmilkstudioos.com/ads.txt)
+  if (url === "/ads.txt") { res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" }); return res.end("google.com, pub-7155198025153354, DIRECT, f08c47fec0942fa0\n"); }
   if (url === "/robots.txt") { res.writeHead(200, { "Content-Type": "text/plain" }); return res.end("User-agent: *\nAllow: /\n\nSitemap: https://sourmilkstudioos.com/sitemap.xml\n"); }
   if (url === "/sitemap.xml") {
     return fs.readFile(path.join(__dirname, "sitemap.xml"), (err, data) => {
