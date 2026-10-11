@@ -8,6 +8,7 @@ const MEDIA_TYPES = { ".mp4": "video/mp4", ".webm": "video/webm", ".jpg": "image
 // Cook & Serve: the game lives in games/cook-and-serve and is served on cookandserve.sourmilkstudioos.com
 // (and at sourmilkstudioos.com/cook-and-serve). Its co-op multiplayer talks to the relay at /ws below.
 const COOK_HOSTS = /^(cookandserve|cook-and-serve|cook)\./;
+const CookAPI = require("./cookserve-api");
 const COOK_PAGE = path.join(__dirname, "games", "cook-and-serve", "index.html");
 const FILES = { "/": ["index.html", "text/html; charset=utf-8"], "/index.html": ["index.html", "text/html; charset=utf-8"] };
 const server = http.createServer((req, res) => {
@@ -18,6 +19,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(301, { Location: "https://" + host.slice(4) + req.url });
     return res.end();
   }
+  if (url.startsWith("/api/") && CookAPI.handle(req, res, url)) return;
   if (COOK_HOSTS.test(host) || url === "/cook-and-serve" || url.startsWith("/cook-and-serve/")) {
     if (url === "/robots.txt") { res.writeHead(200, { "Content-Type": "text/plain" }); return res.end("User-agent: *\nAllow: /\n"); }
     if (url === "/ads.txt") { res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" }); return res.end("google.com, pub-7155198025153354, DIRECT, f08c47fec0942fa0\n"); }
