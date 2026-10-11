@@ -127,7 +127,10 @@ body.touch #touch{display:block}
 #joy.on{display:block}
 #joyKnob{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:rgba(255,246,226,.82)}
 .tbtn{position:absolute;pointer-events:auto;width:46px;height:46px;border-radius:50%;background:var(--plate);color:#fff;border:2px solid rgba(255,246,226,.6);font-weight:700;font-size:13px}
-#tPause{right:16px;top:108px}#tRecipes{right:70px;top:108px}#tTablet{right:124px;top:108px}
+#tPause{right:16px;top:108px}#tRecipes{right:70px;top:108px}#tTablet{right:124px;top:108px}#tFull{right:178px;top:108px;font-size:18px}
+#hudFull{position:absolute;right:16px;bottom:16px;width:40px;height:40px;border-radius:12px;border:2px solid rgba(255,246,226,.5);background:var(--plate);color:#fff;font-size:18px;pointer-events:auto;opacity:.75}#hudFull:hover{opacity:1}body.touch #hudFull{display:none}
+body:not(.touch) #held{right:68px}
+.nofs .fsb{display:none!important}
 body.touch #prompt,body.drag #prompt{pointer-events:auto}
 body.touch #prompt{left:auto;right:16px;top:auto;bottom:74px;margin:0;max-width:66vw;transform-origin:100% 100%}
 body.touch .act{padding:8px 12px;font-size:1.08em;border-radius:12px;background:rgba(255,246,226,.14)}
@@ -152,7 +155,7 @@ body.touch #tickets{top:auto;bottom:64px;max-width:200px;font-size:.86em}
   #toasts{top:auto;bottom:70px}
   #goal{top:10px;max-width:calc(100% - 420px);font-size:.86em}
   body.touch #say{width:min(460px,calc(100% - 420px))}
-  #tPause{top:72px}#tRecipes{top:72px}#tTablet{top:72px}
+  #tPause{top:72px}#tRecipes{top:72px}#tTablet{top:72px}#tFull{top:72px}
 }
 body.touch #say.show{transform:translate(-50%,0)}
 body.drag .act{cursor:pointer}
@@ -290,6 +293,7 @@ body.touch #coopTag{top:160px}
     <div id="prompt"><div id="pName"></div><div id="pSub"></div><div id="pActs"></div></div>
     <div id="say"><span class="ava" id="sayAva"></span><div><b id="sayWho"></b><p id="sayText"></p></div></div>
     <div id="held" class="panel"></div>
+    <button id="hudFull" class="fsb" aria-label="Full screen" title="Full screen (O)">⛶</button>
     <div id="prepHud" class="panel" hidden>
       <div id="prepTitle"></div><div id="prepPips"></div><div id="prepLast"></div>
       <div id="prepHelp">Click or press Space when the knife is over a yellow mark · Q to stop</div>
@@ -298,6 +302,7 @@ body.touch #coopTag{top:160px}
     <div id="touch">
       <div id="joy"><div id="joyKnob"></div></div>
       <button class="tbtn" id="tPause" aria-label="Pause">II</button>
+      <button class="tbtn fsb" id="tFull" aria-label="Full screen">⛶</button>
       <button class="tbtn" id="tRecipes" aria-label="Recipes">?</button>
       <button class="tbtn" id="tTablet" aria-label="My restaurants">▦</button>
     </div>
@@ -312,7 +317,7 @@ body.touch #coopTag{top:160px}
         <button class="cta" id="btnStart" disabled>Start cooking</button>
         <button class="cta alt" id="btnContinue" hidden>Continue</button>
       </div>
-      <button class="cta coopBtn" id="btnCoop" disabled>Play with friends</button>
+      <div class="row"><button class="cta coopBtn" id="btnCoop" disabled>Play with friends</button><button class="cta small fsb" id="btnFull">⛶ Full screen</button></div>
       <div id="coop" class="panel" hidden>
         <div class="coopHead"><h2>Play with friends</h2><button class="x" id="coopClose" aria-label="Close">✕</button></div>
         <div class="me"><span class="ava" id="meAva"></span>
@@ -332,7 +337,7 @@ body.touch #coopTag{top:160px}
         <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk · <kbd>Mouse</kbd> look · <kbd>Shift</kbd> run · <kbd>C</kbd> crouch</p>
         <p><kbd>E</kbd> pick up, place, open, use · <kbd>F</kbd> <kbd>R</kbd> second actions</p>
         <p><kbd>Left click</kbd> stir · <kbd>Right click</kbd> toss · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> stove heat</p>
-        <p><kbd>Tab</kbd> recipes and where to buy · <kbd>T</kbd> my restaurants · <kbd>Esc</kbd> pause · <kbd>M</kbd> sound</p>
+        <p><kbd>Tab</kbd> recipes and where to buy · <kbd>T</kbd> my restaurants · <kbd>Esc</kbd> pause · <kbd>M</kbd> sound · <kbd>O</kbd> full screen</p>
       </div>
     </div>
   </div>
@@ -344,6 +349,7 @@ body.touch #coopTag{top:160px}
       <div class="row">
         <button class="cta" id="btnResume">Back to the kitchen</button>
         <button class="cta small" id="btnSound">Sound: on</button>
+        <button class="cta small fsb" id="btnFull2">⛶ Full screen</button>
         <button class="cta small" id="btnReset">Start over</button>
       </div>
       <div class="keys" style="padding:0">
@@ -5226,6 +5232,19 @@ async function joinServerUI(code) {
     else { startGame(r.world && r.world.tut ? r.world : null, 'host'); Guide.remark('gusto', 'Welcome to ' + r.info.name + '! This kitchen is saved on the server. Friends join with the code ' + code + ' — even after they leave, they can come back.'); }
   } catch (e) { ['btnHost', 'btnJoin'].forEach((id) => ($(id).disabled = false)); msg(e.message === 'busy' ? 'Someone is still opening that kitchen. Try again in a few seconds.' : e.message === 'offline' ? 'Multiplayer is not available here.' : 'Could not join: ' + e.message); }
 }
+/* ---------- full screen ---------- */
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+const fsOK = () => !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+function toggleFullscreen() {
+  const root = document.documentElement;
+  try {
+    if (fsEl()) { const q = (document.exitFullscreen || document.webkitExitFullscreen).call(document); if (q && q.then) q.then(fsLabels, fsLabels); return; }
+    const p = (root.requestFullscreen || root.webkitRequestFullscreen).call(root, { navigationUI: 'hide' });
+    const after = () => { fsLabels(); if (Game.state === 'play' && !Input.touch && !Input.drag) lockPointer(); };
+    if (p && p.then) p.then(after).catch(() => HUD.toast('Full screen is not allowed here — try the game on its own page')); else after();
+  } catch (e) { HUD.toast('Full screen is not available on this device'); }
+}
+function fsLabels() { const on = !!fsEl(); ['btnFull', 'btnFull2'].forEach((id) => { const b = $(id); if (b) b.textContent = on ? '⛶ Exit full screen' : '⛶ Full screen'; }); }
 /* ---------- the title's "Play with friends" panel ---------- */
 function coopTag() { const el = $('coopTag'); if (Net.mode === 'solo') { el.hidden = true; return; } el.hidden = false; el.textContent = 'CO-OP · ' + Net.code + ' · ' + (Object.keys(Net.players).length + 1) + ' chef' + (Object.keys(Net.players).length ? 's' : ''); }
 function coopUI(getSave) {
@@ -5293,13 +5312,14 @@ function startGame(save, coop) {
 }
 const KEYMAP = { KeyE: 'E', KeyF: 'F', KeyR: 'R', Digit1: '1', Digit2: '2', Digit3: '3', Numpad1: '1', Numpad2: '2', Numpad3: '3', KeyQ: 'LMB', KeyG: 'RMB' };
 Handlers.key = (code) => {
-  if (Game.state === 'title') { if (code === 'Enter' && !$('btnStart').disabled) startGame(null); return; }
+  if (Game.state === 'title') { if (code === 'Enter' && !$('btnStart').disabled) startGame(null); else if (code === 'KeyO') toggleFullscreen(); return; }
   if (Decor.open) { if (code === 'Escape' || code === 'KeyE') closeCatalogue(); return; }
   if (Sheet.kind) { if (code === 'Escape') closeSheet(); return; }
   if (code === 'Escape' || code === 'KeyP') { if (Prep.on) Prep.cancel(); else if (Game.state === 'play') pause(); else resume(); return; }
   if (Game.state !== 'play') return;
   if (code === 'Tab') { if ($('recipes').hidden) HUD.recipes(true); return; }
   if (code === 'KeyT' && !Prep.on) { openSheet('tablet'); return; }
+  if (code === 'KeyO') { toggleFullscreen(); return; }
   if (code === 'KeyM') { Sfx.setMuted(!Sfx.muted); $('btnSound').textContent = 'Sound: ' + (Sfx.muted ? 'off' : 'on'); HUD.toast('Sound ' + (Sfx.muted ? 'off' : 'on')); return; }
   if (Prep.on) { if (code === 'Space' || code === 'KeyE') Prep.cut(); else if (code === 'KeyQ') Prep.cancel(); return; }
   if (KEYMAP[code]) doAction(KEYMAP[code]);
@@ -5376,6 +5396,9 @@ async function boot(hot) {
   $('catalog').addEventListener('click', catalogueClick);
   $('sheet').addEventListener('click', sheetClick);
   $('tTablet').addEventListener('click', () => openSheet('tablet'));
+  if (!fsOK()) document.body.classList.add('nofs');
+  ['btnFull', 'btnFull2', 'tFull', 'hudFull'].forEach((id) => $(id).addEventListener('click', (e) => { e.stopPropagation(); toggleFullscreen(); }));
+  document.addEventListener('fullscreenchange', fsLabels); document.addEventListener('webkitfullscreenchange', fsLabels);
   $('btnSound').addEventListener('click', () => { Sfx.setMuted(!Sfx.muted); $('btnSound').textContent = 'Sound: ' + (Sfx.muted ? 'off' : 'on'); });
   $('btnReset').addEventListener('click', (e) => { const b = e.currentTarget; if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = 'Erase progress? Press again'; setTimeout(() => { delete b.dataset.sure; b.textContent = 'Start over'; }, 4000); return; } try { localStorage.removeItem(SAVE_KEY); } catch (er) { /* ignore */ } try { location.reload(); } catch (er) { /* ignore */ } });
   $('sens').addEventListener('input', (e) => { Input.sens = parseFloat(e.target.value) || 1; });
