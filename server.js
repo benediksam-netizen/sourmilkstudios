@@ -69,39 +69,71 @@ const server = http.createServer((req, res) => {
 });
 
 // Co-op relay for Cook & Serve: players in the same 4-letter room share their state (presence) through here.
+// A player whose connection drops gets 20 seconds to come back with their resume token: the others never see them leave,
+// and they keep their place (and whatever they were holding). Busy connections get only the newest state, never a backlog.
 const { WebSocketServer } = require("ws");
 const crypto = require("crypto");
-const ROOM_RE = /^[a-z0-9][a-z0-9_.-]{0,47}$/, MAX_ROOMS = 16, MAX_PEERS = 64;
-const rooms = new Map();
-const wss = new WebSocketServer({ server, path: "/ws", maxPayload: 16 * 1024 });
-const send = (ws, m) => { if (ws.readyState === 1) ws.send(JSON.stringify(m)); };
+const ROOM_RE = /^[a-z0-9][a-z0-9_.-]{0,47}$/, MAX_ROOMS = 16, MAX_PEERS = 64, GRACE_MS = 20000, BACKLOG = 96 * 1024;
+const rooms = new Map(), byTok = new Map(), conns = new Set();
+const wss = new WebSocketServer({ server, path: "/ws", maxPayload: 64 * 1024, perMessageDeflate: { threshold: 1024 } });
+const send = (c, m) => { const ws = c && c.ws; if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); };
+// presence is "latest state wins": when a receiver is backed up, keep only the newest state per sender and send it once the line clears
+function sendPres(o, m) {
+  const ws = o.ws; if (!ws || ws.readyState !== 1) return;
+  if (ws.bufferedAmount > BACKLOG || o.pending.size) { o.pending.set(m.room + " " + m.peer, m); return; }
+  ws.send(JSON.stringify(m));
+}
+setInterval(() => conns.forEach((o) => {
+  if (!o.pending.size || !o.ws || o.ws.readyState !== 1 || o.ws.bufferedAmount > BACKLOG) return;
+  const all = Array.from(o.pending.values()); o.pending.clear(); all.forEach((m) => o.ws.send(JSON.stringify(m)));
+}), 40).unref();
 function leave(c, name) {
   const r = rooms.get(name); if (!r || !r.has(c.peer)) return;
   r.delete(c.peer); c.rooms.delete(name); delete c.pres[name];
-  r.forEach((o) => send(o.ws, { t: "left", room: name, peer: c.peer }));
+  r.forEach((o) => send(o, { t: "left", room: name, peer: c.peer }));
   if (!r.size) rooms.delete(name);
 }
-wss.on("connection", (ws) => {
-  const c = { ws, peer: crypto.randomBytes(8).toString("hex"), rooms: new Set(), pres: {}, alive: true };
-  send(ws, { t: "hello", peer: c.peer });
-  ws.on("pong", () => (c.alive = true));
+function forget(c) { Array.from(c.rooms).forEach((n) => leave(c, n)); byTok.delete(c.tok); conns.delete(c); }
+function attach(c, ws) {
+  c.ws = ws; c.alive = true; clearTimeout(c.graceT); c.graceT = null; c.pending.clear();
+  ws.on("pong", () => { if (c.ws === ws) c.alive = true; });
   ws.on("message", (data) => {
+    if (c.ws !== ws) return;
     let m; try { m = JSON.parse(data); } catch (e) { return; }
-    if (!m || typeof m.room !== "string" || !ROOM_RE.test(m.room)) return;
+    if (!m || typeof m !== "object") return;
+    if (m.t === "bye") { c.bye = true; return; }
+    if (typeof m.room !== "string" || !ROOM_RE.test(m.room)) return;
     if (m.t === "join") {
-      if (c.rooms.has(m.room) || c.rooms.size >= MAX_ROOMS) return;
+      if (c.rooms.has(m.room)) { send(c, { t: "peers", room: m.room, peers: Array.from(rooms.get(m.room).values()).filter((o) => o !== c).map((o) => ({ peer: o.peer, p: o.pres[m.room] || {} })) }); return; }
+      if (c.rooms.size >= MAX_ROOMS) return;
       const r = rooms.get(m.room) || new Map(); if (r.size >= MAX_PEERS) return; rooms.set(m.room, r);
-      send(ws, { t: "peers", room: m.room, peers: Array.from(r.values()).map((o) => ({ peer: o.peer, p: o.pres[m.room] || {} })) });
+      send(c, { t: "peers", room: m.room, peers: Array.from(r.values()).map((o) => ({ peer: o.peer, p: o.pres[m.room] || {} })) });
       r.set(c.peer, c); c.rooms.add(m.room);
     } else if (m.t === "pres") {
       const r = rooms.get(m.room); if (!r || !r.has(c.peer) || typeof m.p !== "object" || m.p === null) return;
       c.pres[m.room] = m.p;
-      r.forEach((o) => { if (o !== c) send(o.ws, { t: "pres", room: m.room, peer: c.peer, p: m.p }); });
+      const out = { t: "pres", room: m.room, peer: c.peer, p: m.p };
+      r.forEach((o) => { if (o !== c) sendPres(o, out); });
     } else if (m.t === "leave") leave(c, m.room);
   });
-  ws.on("close", () => Array.from(c.rooms).forEach((n) => leave(c, n)));
-  c.ping = setInterval(() => { if (!c.alive) { clearInterval(c.ping); return ws.terminate(); } c.alive = false; try { ws.ping(); } catch (e) { /* closed */ } }, 30000);
-  ws.on("close", () => clearInterval(c.ping));
+  ws.on("close", () => {
+    if (c.ws !== ws) return;
+    c.ws = null; clearInterval(c.ping);
+    if (c.bye) return forget(c);
+    c.graceT = setTimeout(() => forget(c), GRACE_MS);
+  });
+  clearInterval(c.ping);
+  c.ping = setInterval(() => { if (c.ws !== ws) return clearInterval(c.ping); if (!c.alive) { clearInterval(c.ping); return ws.terminate(); } c.alive = false; try { ws.ping(); } catch (e) { /* closed */ } }, 15000);
+}
+wss.on("connection", (ws, req) => {
+  let tok = ""; try { tok = new URL(req.url, "http://x").searchParams.get("r") || ""; } catch (e) { /* */ }
+  let c = tok && byTok.get(tok), resumed = false;
+  if (c) { resumed = true; const old = c.ws; c.ws = null; if (old) { try { old.terminate(); } catch (e) { /* */ } } }
+  else { c = { peer: crypto.randomBytes(8).toString("hex"), tok: crypto.randomBytes(16).toString("hex"), rooms: new Set(), pres: {}, pending: new Map(), bye: false }; byTok.set(c.tok, c); conns.add(c); }
+  attach(c, ws);
+  send(c, { t: "hello", peer: c.peer, tok: c.tok, resumed });
+  // a returning player gets the current room state straight away
+  if (resumed) c.rooms.forEach((name) => send(c, { t: "peers", room: name, peers: Array.from(rooms.get(name).values()).filter((o) => o !== c).map((o) => ({ peer: o.peer, p: o.pres[name] || {} })) }));
 });
 
 server.listen(PORT, () => console.log("Sour Milk Studios site on port " + PORT));

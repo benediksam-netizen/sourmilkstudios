@@ -203,6 +203,7 @@ body.drag .act{cursor:pointer}
 #coopMsg b{color:#fff;letter-spacing:.12em;font-size:1.3em}
 #coopTag{position:absolute;right:16px;top:104px;padding:5px 12px;border-radius:999px;background:#2e7fd0;color:#fff;font-weight:800;font-size:.86em;letter-spacing:.04em;box-shadow:0 3px 10px rgba(30,12,0,.25)}
 body.touch #coopTag{top:160px}
+#netWarn{position:absolute;left:50%;top:64px;transform:translateX(-50%);z-index:3;padding:7px 16px 8px;border-radius:999px;background:rgba(168,48,28,.94);color:#fff;font-weight:800;font-size:.9em;box-shadow:0 4px 14px rgba(30,12,0,.3);animation:blink 1.2s steps(2) infinite;white-space:nowrap}
 #acct{display:flex;align-items:center;gap:10px;padding:9px 12px;max-width:100%;box-sizing:border-box;background:rgba(58,30,14,.9);color:#fff4dc;flex-wrap:wrap}
 #acct .ava{width:40px;height:40px;border-radius:50%;background:#fff4dc;overflow:hidden;flex:none}
 #acct div{display:flex;flex-direction:column;min-width:0;flex:1}#acct b{font-size:1.05em}#acct small{color:#e8cfa8;font-size:.8em;line-height:1.3}
@@ -285,6 +286,7 @@ body.touch #coopTag{top:160px}
     <div id="labels"></div>
     <div id="clock" class="panel"><b id="day">Day 1</b><i id="cuisine">Italian</i><span id="time">08:00 AM</span><span id="open" class="tag offt">CLOSED</span></div>
     <div id="coopTag" class="pill small" hidden></div>
+    <div id="netWarn" role="status" hidden>Reconnecting…</div>
     <div id="wallet"><div class="pill"><i class="coin"></i><span id="money">$ 80</span></div><div class="pill small" id="stars">⭐ New</div></div>
     <div id="goal"><span class="ava" id="goalAva"></span><span id="goalText"></span></div>
     <ul id="tickets"></ul>
@@ -4700,7 +4702,7 @@ function kitchenLabels() {
 const Net = { beanId: 0, lastAt: {},
   mode: 'solo', me: null, code: '', room: null, lobby: null, players: {}, hostPeer: null, actor: null,
   seq: 0, q: [], sendT: 0, n: 0, last: {}, gone: {}, ev: [], evId: 0, seenEv: 0, sync: 0, resync: [], full: true,
-  cust: {}, custPend: {}, parties: {}, tables: {}, gotFirst: false, lostT: 0, nm: '', lk: null, onFirst: null,
+  cust: {}, custPend: {}, parties: {}, tables: {}, gotFirst: false, lostT: 0, nm: '', lk: null, onFirst: null, rs: 0, rsAt: 0, lastRx: 0, kickAt: 0,
   get guest() { return this.mode === 'guest'; }, get host() { return this.mode === 'host'; },
   dirty() { /* every snapshot already diffs the whole world; kept as a hook for instant resends */ this.sendT = Math.min(this.sendT, 0.03); },
 };
@@ -4721,18 +4723,52 @@ const Transport = {
   lobby() { return this.kind === 'room' ? this.r : WSRelay.room('lobby'); },
   join(code) { const name = 'cs-' + code.toLowerCase(); return this.kind === 'room' ? this.r.join(name) : Promise.resolve(WSRelay.room(name)); },
 };
-// a tiny presence relay over one WebSocket, shaped like the room capability (see server.js)
+// a tiny presence relay over one WebSocket, shaped like the room capability (see server.js).
+// If the connection drops it reconnects by itself with a resume token, so the player keeps their place in the room;
+// the others only see them leave if they stay away for 20 seconds.
 const WSRelay = {
-  ws: null, rooms: {}, me: null,
+  ws: null, rooms: {}, me: null, tok: '', url: '', down: 0, tries: 0, timer: 0, onBack: [],
   connect(url) {
+    this.url = url;
     return new Promise((res, rej) => {
-      const ws = new WebSocket(url); const to = setTimeout(() => { try { ws.close(); } catch (e) { /* */ } rej(new Error('timeout')); }, 4000);
-      ws.onopen = () => { clearTimeout(to); this.ws = ws; res(); };
-      ws.onerror = () => { clearTimeout(to); rej(new Error('ws')); };
-      ws.onmessage = (e) => { let m; try { m = JSON.parse(e.data); } catch (er) { return; } if (m.t === 'hello') { this.me = m.peer; return; } const r = this.rooms[m.room]; if (r) r._msg(m); };
-      ws.onclose = () => { this.ws = null; Object.values(this.rooms).forEach((r) => r._close()); };
+      let done = false;
+      this._open(() => { if (!done) { done = true; res(); } }, () => { if (!done) { done = true; rej(new Error('ws')); } });
     });
   },
+  _open(ok, fail) {
+    let ws; try { ws = new WebSocket(this.url + (this.tok ? (this.url.includes('?') ? '&' : '?') + 'r=' + this.tok : '')); } catch (e) { fail && fail(); this._retry(); return; }
+    const to = setTimeout(() => { try { ws.close(); } catch (e) { /* */ } }, 5000);
+    let opened = false;
+    ws.onopen = () => { clearTimeout(to); opened = true; this.ws = ws; this.tries = 0; };
+    ws.onerror = () => {};
+    ws.onmessage = (e) => {
+      if (this.ws !== ws) return;
+      let m; try { m = JSON.parse(e.data); } catch (er) { return; }
+      if (m.t === 'hello') {
+        const was = this.me, back = !!this.down; this.me = m.peer; this.tok = m.tok || this.tok; this.down = 0;
+        Object.values(this.rooms).forEach((r) => r._rehome(was, m.resumed));
+        ok && ok(); ok = null;
+        if (back) this.onBack.forEach((f) => { try { f(!!m.resumed); } catch (er) { /* */ } });
+        return;
+      }
+      const r = this.rooms[m.room]; if (r) r._msg(m);
+    };
+    ws.onclose = () => {
+      clearTimeout(to);
+      if (this.ws && this.ws !== ws) return;
+      this.ws = null;
+      if (!opened && fail) { fail(); fail = null; }
+      if (this.bye) return;
+      if (!this.down) this.down = Date.now();
+      // give up after 25 seconds: the server has let us go by then, so tell the game everyone left
+      if (Date.now() - this.down > 25000) { this.down = 0; this.tok = ''; Object.values(this.rooms).forEach((r) => r._close()); return; }
+      this._retry();
+    };
+  },
+  _retry() { clearTimeout(this.timer); const wait = Math.min(4000, 300 * Math.pow(2, this.tries++)); this.timer = setTimeout(() => this._open(), wait); },
+  // the line has gone quiet: drop it and come straight back
+  kick() { if (this.ws) { try { this.ws.close(); } catch (e) { /* */ } } else if (!this.timer || this.down) { this.tries = 0; this._retry(); } },
+  get lagging() { return !!(this.ws && this.ws.bufferedAmount > 96 * 1024); },
   send(m) { if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(m)); },
   room(name) {
     if (this.rooms[name]) return this.rooms[name];
@@ -4746,16 +4782,31 @@ const WSRelay = {
       peers: snap, onPeers(f) { subs.push(f); setTimeout(() => f({ peers: snap(), joined: snap(), left: [], updated: [] }), 0); return () => subs.splice(subs.indexOf(f), 1); },
       connected: () => !!self.ws, leave() { self.send({ t: 'leave', room: name }); delete self.rooms[name]; return Promise.resolve(); },
       _msg(m) {
-        if (m.t === 'peers') { m.peers.forEach((p) => { if (p.peer !== self.me) peers.set(p.peer, { peer: p.peer, presence: p.p || {}, isMe: false, sameTab: false }); }); emit({ joined: snap(), left: [], updated: [] }); }
+        if (m.t === 'peers') {
+          // the full list: anyone missing from it has left
+          const live = {}; m.peers.forEach((p) => { if (p.peer === self.me) return; live[p.peer] = 1; peers.set(p.peer, { peer: p.peer, presence: p.p || {}, isMe: false, sameTab: false }); });
+          const left = []; peers.forEach((p, id) => { if (!p.isMe && !live[id]) { peers.delete(id); left.push(p); } });
+          emit({ joined: snap(), left, updated: [] });
+        }
         else if (m.t === 'pres') { const had = peers.has(m.peer), p = { peer: m.peer, presence: m.p || {}, isMe: false, sameTab: false }; peers.set(m.peer, p); emit(had ? { joined: [], left: [], updated: [p] } : { joined: [p], left: [], updated: [] }); }
         else if (m.t === 'left') { const p = peers.get(m.peer); if (p) { peers.delete(m.peer); emit({ joined: [], left: [p], updated: [] }); } }
       },
-      _close() { const l = snap().filter((p) => !p.isMe); peers.clear(); emit({ joined: [], left: l, updated: [] }); },
+      // after a reconnect: the server either kept us (same id) or we are new and must join again
+      _rehome(was, resumed) {
+        if (was && was !== self.me) peers.delete(was);
+        peers.set(self.me, { peer: self.me, presence: Object.assign({}, mine), isMe: true, sameTab: true });
+        if (!resumed) self.send({ t: 'join', room: name });
+        if (Object.keys(mine).length) self.send({ t: 'pres', room: name, p: mine });
+      },
+      _close() { const l = snap().filter((p) => !p.isMe); peers.clear(); peers.set(self.me, { peer: self.me, presence: Object.assign({}, mine), isMe: true, sameTab: true }); emit({ joined: [], left: l, updated: [] }); },
     };
     peers.set(self.me, { peer: self.me, presence: {}, isMe: true, sameTab: true });
     this.rooms[name] = r; this.send({ t: 'join', room: name }); return r;
   },
 };
+// closing or reloading the tab is a real goodbye: let the others know at once
+window.addEventListener('pagehide', () => { if (WSRelay.ws) { WSRelay.bye = true; WSRelay.send({ t: 'bye' }); } });
+window.addEventListener('pageshow', (e) => { if (e.persisted) WSRelay.bye = false; });
 
 /* ---------- who am I, and how do I look ---------- */
 const CHEF_SKINS = SKINS, CHEF_HAIR = [0x6b3a1e, 0x2a1a12, 0xd9a85a, 0xc8502a, 0xf4f1ea], CHEF_SCARF = [0xd9372b, 0x3aa7e8, 0x58a53c, 0xffc93c, 0xa77be0];
@@ -4838,7 +4889,7 @@ function avatarsUpdate() {
   for (const id in Net.players) {
     const pl = Net.players[id]; if (!pl.av) continue; const b = pl.av.b, d = Math.hypot(pl.tx - b.pos.x, pl.tz - b.pos.z);
     if (d > 5) { b.pos.x = pl.tx; b.pos.z = pl.tz; b.path = []; }
-    else if (d > 0.12) { b.speed = clamp(d * 5, 1.6, 6.5); b.path = [{ x: pl.tx, z: pl.tz }]; }
+    else if (d > 0.08) { b.speed = clamp(d * 7, 1.4, 8); b.path = [{ x: pl.tx, z: pl.tz }]; }
     else { b.path = []; b.tyaw = pl.tyaw; }
   }
 }
@@ -4874,7 +4925,10 @@ function worldEntries() {
 function hostSend() {
   const now = Game.t;
   let ev = Net.ev.filter((x) => now - x[1] < 2.5).slice(-8).map((x) => [x[0]].concat(x[2].map((v) => (typeof v === 'string' ? v.slice(0, 220) : v))));
-  const BUDGET = 3500 - blen(JSON.stringify(ev)) - blen(Net.nm) * 2;
+  // the website relay carries big updates (the whole kitchen at once); the Claude room keeps each update under 4 KB
+  const big = Transport.kind === 'ws', CAP = big ? 40000 : 3950;
+  if (big && WSRelay.lagging) return;   // the line is backed up: skip this tick instead of piling on
+  const BUDGET = (big ? 32000 : 3500) - blen(JSON.stringify(ev)) - blen(Net.nm) * 2;
   const E = worldEntries(), out = [], seen = {}; let size = 0;
   // deletions: anything we sent before that no longer exists
   for (const k in Net.last) seen[k] = 1;
@@ -4893,7 +4947,7 @@ function hostSend() {
   changed.forEach(([e]) => { if (!out.includes(e)) delete Net.last[e[0]]; });
   Net.n++;
   const pres = { host: 1, nm: Net.nm, lk: Net.lk, ps: myPs(), st: { n: Net.n, d: out, ev, np: Object.keys(Net.players).length + 1 } };
-  while (out.length && blen(JSON.stringify(pres)) > 3950) { const e = out.pop(); if (e[1] !== null) delete Net.last[e[0]]; }
+  while (out.length && blen(JSON.stringify(pres)) > CAP) { const e = out.pop(); if (e[1] !== null) delete Net.last[e[0]]; }
   Net.room.presence(pres).catch((er) => { if (!Net.warned) { Net.warned = 1; console.warn('presence', er && er.code); } });
 }
 function netEvent(type, ...args) { if (!Net.host) return; Net.ev.push([++Net.evId, Game.t, [type].concat(args)]); if (Net.ev.length > 40) Net.ev.shift(); }
@@ -4901,7 +4955,10 @@ const myPs = () => [Math.round(P.pos.x * 100) / 100, Math.round(P.pos.z * 100) /
 
 /* ---------- guest: apply what the host sent ---------- */
 function guestApply(st) {
-  if (!st || !Array.isArray(st.d) || st.n === Net.lastN) return; Net.lastN = st.n;
+  if (!st || !Array.isArray(st.d) || st.n === Net.lastN) return;
+  // missed updates (a dropped or squeezed line): ask the host for the whole kitchen again
+  if (Net.lastN > 0 && st.n > Net.lastN + 2) askResync();
+  Net.lastN = st.n; Net.lastRx = performance.now(); netWarn(false);
   let partiesTouched = false, mf = null;
   st.d.forEach((e) => {
     if (!Array.isArray(e)) return; const k = String(e[0]), v = e[1];
@@ -4999,12 +5056,33 @@ function netUpdate(dt) {
   if (Net.mode === 'solo' || !Net.room) return;
   avatarsUpdate();
   Net.sendT -= dt;
-  if (Net.host) { if (Net.sendT <= 0) { Net.sendT = NET_HZ; hostSend(); } }
-  else if (Net.sendT <= 0) {
-    Net.sendT = 0.066; Net.room.presence({ nm: Net.nm, lk: Net.lk, ps: myPs(), q: Net.q }).catch(() => {});
-    if (Net.gotFirst && !Net.hostPeer) { Net.lostT += 0.066; if (Net.lostT > 6) netLost('The host left the game.'); } else Net.lostT = 0;
-  }
+  const ws = Transport.kind === 'ws';
+  if (Net.host) { if (Net.sendT <= 0) { Net.sendT = NET_HZ; hostSend(); } netWarn(ws && !WSRelay.ws); return; }
+  if (Net.sendT <= 0) { Net.sendT = 0.066; guestPres(); }
+  if (!Net.gotFirst) return;
+  // nothing from the host for a while: say so, and on the website pull the plug and reconnect at once
+  const quiet = (performance.now() - Net.lastRx) / 1000;
+  if (quiet > 2.5) netWarn(true);
+  if (ws && quiet > 4 && performance.now() - Net.kickAt > 6000) { Net.kickAt = performance.now(); WSRelay.kick(); }
+  if (quiet > 35) return netLost('Lost the connection to the host.');
+  if (!Net.hostPeer) { Net.lostT += dt; if (Net.lostT > (ws ? 4 : 8)) netLost('The host left the game.'); } else Net.lostT = 0;
 }
+const guestPres = () => Net.room && Net.room.presence({ nm: Net.nm, lk: Net.lk, ps: myPs(), q: Net.q, rs: Net.rs }).catch(() => {});
+function askResync() { const now = performance.now(); if (now - Net.rsAt < 1500) return; Net.rsAt = now; Net.rs++; Net.sendT = 0; }
+// a small banner while the line is down
+function netWarn(on) {
+  const el = $('netWarn'); if (!el) return; on = !!on && Net.mode !== 'solo';
+  if (el.hidden === !on) return; el.hidden = !on;
+  el.textContent = Net.host ? 'Connection lost — reconnecting… your friends will wait' : 'Reconnecting to the kitchen…';
+}
+// back on the line after a drop: the host sends everything again, a guest asks for everything again
+WSRelay.onBack.push((resumed) => {
+  if (Net.mode === 'solo') return;
+  if (WSRelay.me) Net.me = WSRelay.me;
+  if (Net.host) { Net.full = true; Net.sendT = 0; netLobbyAd(); }
+  else { askResync(); Net.lastRx = performance.now(); }
+  if (!resumed) HUD.toast('Reconnected');
+});
 // a guest pressed a button: ask the host to do it
 function netRequest(key, k, label, arg) {
   Net.q.push([++Net.seq, key, k, label, arg === undefined ? 0 : arg]); if (Net.q.length > 6) Net.q.shift();
@@ -5026,10 +5104,11 @@ function onRoomPeers(ch) {
       if (Net.host) { Net.full = true; HUD.toast(cleanName(pr.nm) + ' joined your kitchen!'); Sfx.play('happy'); netLobbyAd(); }
       if (Net.guest && Net.gotFirst && !pr.host) HUD.toast(cleanName(pr.nm) + ' joined the kitchen');
     }
+    if (Net.host && pr.rs !== undefined && pr.rs !== pl.rs) { if (pl.rs !== undefined) Net.full = true; pl.rs = pr.rs; Net.sendT = Math.min(Net.sendT, 0.012); }
     pl.pres = pr; avatarSync(pl);
     if (Net.host && Array.isArray(pr.q)) {
       if (pl.lastQ === undefined || pl.fresh) { pl.fresh = false; pl.lastQ = Math.max(0, ...pr.q.map((r) => (Array.isArray(r) ? +r[0] || 0 : 0))); }
-      pr.q.forEach((r) => { if (Array.isArray(r) && +r[0] > pl.lastQ) { pl.lastQ = +r[0]; runRequest(pl, r); } });
+      pr.q.forEach((r) => { if (Array.isArray(r) && +r[0] > pl.lastQ) { pl.lastQ = +r[0]; runRequest(pl, r); Net.sendT = Math.min(Net.sendT, 0.012); } });
     }
   });
   if (Net.guest && Net.hostPeer && !now[Net.hostPeer]) Net.hostPeer = null;
@@ -5040,8 +5119,9 @@ function netLost(msg) {
   if (Net.mode === 'solo') return;
   const m = Net.mode;
   if (m === 'guest' && Online.server) { try { sessionStorage.setItem('cookserve.autojoin', Net.code); } catch (e) { /* */ } HUD.toast('The host left — picking the kitchen back up…'); netLeave(); setTimeout(() => location.reload(), 1500); return; }
+  if (m === 'guest') { try { sessionStorage.setItem('cookserve.rejoin', Net.code); } catch (e) { /* */ } }
   netLeave();
-  if (m === 'guest') { HUD.toast(msg, 'warn'); setTimeout(() => location.reload(), 2200); }
+  if (m === 'guest') { HUD.toast(msg + ' Trying to join again…', 'warn'); setTimeout(() => location.reload(), 2200); }
 }
 function netLeave() {
   Object.keys(Net.players).forEach((id) => { const pl = Net.players[id]; if (pl.av) pl.av.b.remove(); delete Net.players[id]; });
@@ -5075,13 +5155,14 @@ async function netHost() {
 async function netJoin(code) {
   if (!(await Transport.init())) throw new Error('offline');
   code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4); if (code.length !== 4) throw new Error('code');
-  const r = await Transport.join(code); netMe(r); Net.room = r; Net.mode = 'guest'; Net.code = code; Net.gotFirst = false; Net.lastN = -1;
+  const r = await Transport.join(code); netMe(r); Net.room = r; Net.mode = 'guest'; Net.code = code; Net.gotFirst = false; Net.lastN = -1; Net.lastRx = performance.now();
   r.onPeers(onRoomPeers, () => netLost('Lost the connection.'));
-  r.presence({ nm: Net.nm, lk: Net.lk, ps: [0, -13.2, 0, 0], q: [] }).catch(() => {});
+  r.presence({ nm: Net.nm, lk: Net.lk, ps: [0, -13.2, 0, 0], q: [], rs: Net.rs }).catch(() => {});
   document.body.classList.add('coop');
   return new Promise((res, rej) => {
     const to = setTimeout(() => { if (!Net.gotFirst) { netLeave(); rej(new Error('nohost')); } }, 15000);
-    Net.onFirst = () => { clearTimeout(to); Net.onFirst = null; res(); };
+    // remember the code for this tab, so a reload or a drop goes straight back into the same kitchen
+    Net.onFirst = () => { clearTimeout(to); Net.onFirst = null; try { sessionStorage.setItem('cookserve.rejoin', code); } catch (e) { /* */ } res(); };
   });
 }
 // open kitchens other people are hosting right now
@@ -5093,6 +5174,9 @@ async function lobbyWatch(cb) {
   if (!(await Transport.init())) return false;
   Net.lobby = Net.lobby || Transport.lobby(); Net.lobby.onPeers(() => cb(lobbyGames())); cb(lobbyGames()); return true;
 }
+
+// a host in a background tab still tells friends it is there (browsers pause the game loop in hidden tabs)
+setInterval(() => { if (document.hidden && Net.host && Net.room) hostSend(); }, 1000);
 
 /* 11c-online.js */
 /* ===== online: your chef name keeps your progress, and friend servers keep their kitchen =====
@@ -5150,7 +5234,7 @@ async function netJoinServer(code, onStatus) {
   const info = (await api('/api/servers/' + code + '/join', 'POST', {})).server;
   if (!(await Transport.init())) throw new Error('offline');
   const r = await Transport.join(code); netMe(r); Net.room = r; Net.code = code; Online.server = info;
-  r.presence({ nm: Net.nm, lk: Net.lk, ps: [0, -13.2, 0, 0], q: [] }).catch(() => {});
+  r.presence({ nm: Net.nm, lk: Net.lk, ps: [0, -13.2, 0, 0], q: [], rs: Net.rs }).catch(() => {});
   const hostHere = () => (r.peers() || []).some((p) => !p.sameTab && p.presence && p.presence.host);
   const t0 = Date.now();
   for (;;) {
@@ -5158,7 +5242,7 @@ async function netJoinServer(code, onStatus) {
     if (!Net.me) netMe(r);
     if (hostHere()) {
       onStatus && onStatus('Joining ' + info.name + '…');
-      Net.mode = 'guest'; Net.gotFirst = false; Net.lastN = -1; r.onPeers(onRoomPeers, () => netLost('Lost the connection.')); document.body.classList.add('coop');
+      Net.mode = 'guest'; Net.gotFirst = false; Net.lastN = -1; Net.lastRx = performance.now(); r.onPeers(onRoomPeers, () => netLost('Lost the connection.')); document.body.classList.add('coop');
       await new Promise((res, rej) => { const to = setTimeout(() => rej(new Error('nohost')), 15000); Net.onFirst = () => { clearTimeout(to); Net.onFirst = null; res(); }; if (Net.gotFirst) Net.onFirst(); onRoomPeers({}); });
       return { mode: 'guest', info };
     }
@@ -5284,6 +5368,10 @@ function coopUI(getSave) {
     catch (e) { busy(false); msg(e.message === 'code' ? 'Codes have 4 letters or numbers.' : e.message === 'offline' ? 'Multiplayer is not available here.' : 'No kitchen answered with that code. Check it with your friend and make sure they are hosting.'); }
   };
   $('btnJoin').addEventListener('click', () => join($('joinCode').value));
+  // dropped out of a friend's kitchen: go straight back in
+  let again = null; try { again = sessionStorage.getItem('cookserve.rejoin'); sessionStorage.removeItem('cookserve.rejoin'); } catch (e) { /* */ }
+  if (again) HUD.toast('Joining ' + again + ' again…');
+  if (again && /^[A-Z0-9]{4}$/.test(again) && Game.state === 'title') { $('btnCoop').click(); $('joinCode').value = again; setTimeout(() => join(again), 300); }
   $('joinCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') join($('joinCode').value); e.stopPropagation(); });
   $('meName').addEventListener('keydown', (e) => e.stopPropagation());
   $('games').addEventListener('click', (e) => { const b = e.target.closest('button[data-code]'); if (b) join(b.dataset.code); });
