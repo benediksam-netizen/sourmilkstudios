@@ -22,7 +22,7 @@
 {"@type":"WebSite","name":"Sour Milk Studios","url":"https://sourmilkstudioos.com/","publisher":{"@id":"https://sourmilkstudioos.com/#org"}},
 {"@type":"VideoGame","name":"Dino Rampage","url":"https://dinorampage.sourmilkstudioos.com/","trailer":{"@type":"VideoObject","name":"Dino Rampage – Official Trailer","description":"Official trailer for Dino Rampage: Eat & Grow!, a free dinosaur game by Sour Milk Studios. Eat to grow, then battle other dinos.","thumbnailUrl":"https://sourmilkstudioos.com/media/dino-rampage-trailer.jpg","contentUrl":"https://sourmilkstudioos.com/media/dino-rampage-trailer.mp4","uploadDate":"2026-10-05","duration":"PT10S"},"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","description":"Eat, grow and rampage as a dinosaur on a prehistoric island. Play online with friends.","author":{"@id":"https://sourmilkstudioos.com/#org"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}},
 {"@type":"VideoGame","name":"Ocean Bound","url":"https://oceanbound.sourmilkstudioos.com/","trailer":{"@type":"VideoObject","name":"Ocean Bound – Official Gameplay Trailer","description":"Official gameplay trailer for Ocean Bound, a free fishing and island adventure game by Sour Milk Studios.","thumbnailUrl":"https://sourmilkstudioos.com/media/ocean-bound-trailer.jpg","contentUrl":"https://sourmilkstudioos.com/media/ocean-bound-trailer.mp4","uploadDate":"2026-10-05","duration":"PT10S"},"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","description":"A cozy fishing, boating and island adventure. Explore, fish, build and discover.","author":{"@id":"https://sourmilkstudioos.com/#org"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}},
-{"@type":"VideoGame","name":"Sour Milk Logistics","url":"https://logistics.sourmilkstudioos.com/","image":"https://sourmilkstudioos.com/media/sour-milk-logistics-poster.webp","gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","genre":["Simulation","Strategy"],"description":"A business simulation with a living global economy. Trade, build, invest and connect the world.","author":{"@id":"https://sourmilkstudioos.com/#org"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}},
+{"@type":"VideoGame","name":"Sour Milk Logistics","url":"https://logistics.sourmilkstudioos.com/","image":"https://sourmilkstudioos.com/media/sour-milk-logistics-poster.webp","trailer":{"@type":"VideoObject","name":"Sour Milk Logistics – Official Trailer","description":"Official trailer for Sour Milk Logistics, a free business simulation by Sour Milk Studios. Trade, build, invest and connect the world.","thumbnailUrl":"https://sourmilkstudioos.com/media/sour-milk-logistics-trailer.jpg","contentUrl":"https://sourmilkstudioos.com/media/sour-milk-logistics-trailer.mp4","uploadDate":"2026-10-13","duration":"PT16S"},"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","genre":["Simulation","Strategy"],"description":"A business simulation with a living global economy. Trade, build, invest and connect the world.","author":{"@id":"https://sourmilkstudioos.com/#org"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}},
 {"@type":"VideoGame","name":"Cook & Serve","url":"https://cookandserve.sourmilkstudioos.com/","image":"https://sourmilkstudioos.com/media/cook-and-serve-poster-v2.webp","gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","genre":["Simulation","Cooking"],"description":"A first-person cooking and restaurant game. Shop for ingredients around town, cook six cuisines, serve customers, decorate your restaurant and cook together with friends.","publisher":{"@id":"https://sourmilkstudioos.com/#org"}}
 ]}
 </script>
@@ -649,12 +649,20 @@ footer{background:var(--ink);color:var(--sand);padding-block:48px 24px}
       <p>Run a shipping company in a living world economy. Start with two small ships, carry cargo between ten islands and grow into a global business. Play solo, or team up with up to three friends and race other teams online.</p>
       <div class="row">
         <a class="btn play big" id="play_sour_milk_logistics_hero" data-track="play_sour_milk_logistics" href="https://logistics.sourmilkstudioos.com/" target="_blank" rel="noopener noreferrer">Play now <span class="arr">→</span></a>
+        <a class="btn ghost" id="watch_trailer_sour_milk_logistics" data-track="watch_trailer_sour_milk_logistics" href="#sour-milk-logistics-trailer">▶ Watch trailer</a>
         <a class="btn ghost" id="read_guide_sour_milk_logistics_hero" data-track="read_guide_sour_milk_logistics" href="/media/sour-milk-logistics-guide.pdf" target="_blank" rel="noopener">Read the guide</a>
       </div>
     </div>
   </div>
   <section>
     <div class="wrap" style="display:grid;gap:clamp(40px,6vw,64px)">
+      <figure class="trailer" id="logiTrailer" style="margin:0">
+        <video id="logiTrailerVideo" controls playsinline preload="metadata" poster="/media/sour-milk-logistics-trailer.jpg">
+          <source src="/media/sour-milk-logistics-trailer.mp4" type="video/mp4">
+          Your browser can't play this video. <a href="/media/sour-milk-logistics-trailer.mp4">Open the trailer</a>.
+        </video>
+        <figcaption>Sour Milk Logistics · Official trailer</figcaption>
+      </figure>
       <div class="feats">
         <div class="feat"><b class="logi-t">TRADE</b><span>Buy cheap, sell dear across ten islands</span></div>
         <div class="feat"><b class="logi-t">BUILD</b><span>Found your own factories</span></div>
@@ -1115,6 +1123,7 @@ document.getElementById("copyEmail").addEventListener("click", () => {
 
 /* ---------- Game trailers ---------- */
 [["watch_trailer_ocean_bound", "oceanTrailer", "oceanTrailerVideo", "ocean-bound"],
+ ["watch_trailer_sour_milk_logistics", "logiTrailer", "logiTrailerVideo", "sour-milk-logistics"],
  ["watch_trailer_dino_rampage", "dinoTrailer", "dinoTrailerVideo", "dino-rampage"]].forEach(([btnId, boxId, vidId, game]) => {
   const btn = document.getElementById(btnId), vid = document.getElementById(vidId);
   if (!btn || !vid) return;
