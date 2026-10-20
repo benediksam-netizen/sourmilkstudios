@@ -9,8 +9,8 @@ const MEDIA_TYPES = { ".mp4": "video/mp4", ".webm": "video/webm", ".jpg": "image
 // (and at sourmilkstudioos.com/cook-and-serve). Its co-op multiplayer talks to the relay at /ws below.
 const COOK_HOSTS = /^(cookandserve|cook-and-serve|cook)\./;
 const CookAPI = require("./cookserve-api");
+const Pages = require("./pages");
 const COOK_PAGE = path.join(__dirname, "games", "cook-and-serve", "index.html");
-const FILES = { "/": ["index.html", "text/html; charset=utf-8"], "/index.html": ["index.html", "text/html; charset=utf-8"] };
 const server = http.createServer((req, res) => {
   const url = req.url.split("?")[0];
   // Send www.sourmilkstudioos.com visitors to the main address.
@@ -31,12 +31,7 @@ const server = http.createServer((req, res) => {
   // Google AdSense: authorised seller list (https://sourmilkstudioos.com/ads.txt)
   if (url === "/ads.txt") { res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" }); return res.end("google.com, pub-7155198025153354, DIRECT, f08c47fec0942fa0\n"); }
   if (url === "/robots.txt") { res.writeHead(200, { "Content-Type": "text/plain" }); return res.end("User-agent: *\nAllow: /\n\nSitemap: https://sourmilkstudioos.com/sitemap.xml\n"); }
-  if (url === "/sitemap.xml") {
-    return fs.readFile(path.join(__dirname, "sitemap.xml"), (err, data) => {
-      if (err) { res.writeHead(404); return res.end("Not found"); }
-      res.writeHead(200, { "Content-Type": "application/xml; charset=utf-8" }); res.end(data);
-    });
-  }
+  if (url === "/sitemap.xml") { res.writeHead(200, { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=3600" }); return res.end(Pages.sitemap()); }
   // Videos, images and PDF guides in /media (supports seeking, which phones need to play video).
   if (url.startsWith("/media/")) {
     const name = path.basename(url);
@@ -60,12 +55,20 @@ const server = http.createServer((req, res) => {
       fs.createReadStream(file).pipe(res);
     });
   }
-  const f = FILES[url] || FILES["/"];   // every path shows the site (e.g. /games/dino-rampage)
-  fs.readFile(path.join(__dirname, f[0]), (err, data) => {
-    if (err) { res.writeHead(500); return res.end("Server error"); }
-    res.writeHead(200, { "Content-Type": f[1], "Cache-Control": "public, max-age=300" });
-    res.end(data);
-  });
+  // Every page of the site has its own address: /, /games, /games/dino-rampage, /about, /news ...
+  if (url === "/index.html" || (url.length > 1 && url.endsWith("/"))) {
+    const to = url === "/index.html" ? "/" : url.replace(/\/+$/, "");
+    res.writeHead(301, { Location: to + (req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "") });
+    return res.end();
+  }
+  let html = Pages.render(url), status = 200;
+  if (!html) {   // unknown address: a friendly "not found" page with the right status code
+    status = 404;
+    html = Pages.render("/").replace(/<title>[^<]*<\/title>/, "<title>Page not found · Sour Milk Studios</title>")
+      .replace('<meta name="robots" content="index, follow">', '<meta name="robots" content="noindex">');
+  }
+  res.writeHead(status, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=300" });
+  res.end(html);
 });
 
 // Co-op relay for Cook & Serve: players in the same 4-letter room share their state (presence) through here.
