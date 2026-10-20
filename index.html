@@ -22,7 +22,7 @@
 {"@type":"WebSite","name":"Sour Milk Studios","url":"https://sourmilkstudioos.com/","publisher":{"@id":"https://sourmilkstudioos.com/#org"}},
 {"@type":"VideoGame","name":"Dino Rampage","url":"https://dinorampage.sourmilkstudioos.com/","trailer":{"@type":"VideoObject","name":"Dino Rampage – Official Trailer","description":"Official trailer for Dino Rampage: Eat & Grow!, a free dinosaur game by Sour Milk Studios. Eat to grow, then battle other dinos.","thumbnailUrl":"https://sourmilkstudioos.com/media/dino-rampage-trailer.jpg","contentUrl":"https://sourmilkstudioos.com/media/dino-rampage-trailer.mp4","uploadDate":"2026-10-05","duration":"PT10S"},"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","description":"Eat, grow and rampage as a dinosaur on a prehistoric island. Play online with friends.","author":{"@id":"https://sourmilkstudioos.com/#org"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}},
 {"@type":"VideoGame","name":"Ocean Bound","url":"https://oceanbound.sourmilkstudioos.com/","trailer":{"@type":"VideoObject","name":"Ocean Bound – Official Gameplay Trailer","description":"Official gameplay trailer for Ocean Bound, a free fishing and island adventure game by Sour Milk Studios.","thumbnailUrl":"https://sourmilkstudioos.com/media/ocean-bound-trailer.jpg","contentUrl":"https://sourmilkstudioos.com/media/ocean-bound-trailer.mp4","uploadDate":"2026-10-05","duration":"PT10S"},"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","description":"A cozy fishing, boating and island adventure. Explore, fish, build and discover.","author":{"@id":"https://sourmilkstudioos.com/#org"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}},
-{"@type":"VideoGame","name":"Sour Milk Logistics","url":"https://logistics.sourmilkstudioos.com/","image":"https://sourmilkstudioos.com/media/sour-milk-logistics-poster.webp","trailer":{"@type":"VideoObject","name":"Sour Milk Logistics – Official Trailer","description":"Official trailer for Sour Milk Logistics, a free business simulation by Sour Milk Studios. Trade, build, invest and connect the world.","thumbnailUrl":"https://sourmilkstudioos.com/media/sour-milk-logistics-trailer.jpg","contentUrl":"https://sourmilkstudioos.com/media/sour-milk-logistics-trailer.mp4","uploadDate":"2026-10-13","duration":"PT16S"},"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","genre":["Simulation","Strategy"],"description":"A business simulation with a living global economy. Trade, build, invest and connect the world.","author":{"@id":"https://sourmilkstudioos.com/#org"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}},
+{"@type":"VideoGame","name":"Sour Milk Logistics","url":"https://logistics.sourmilkstudioos.com/","image":"https://sourmilkstudioos.com/media/sour-milk-logistics-poster.webp","trailer":{"@type":"VideoObject","name":"Sour Milk Logistics – Official Trailer","description":"Official trailer for Sour Milk Logistics, a free business simulation by Sour Milk Studios. Trade, build, invest and connect the world.","thumbnailUrl":"https://sourmilkstudioos.com/media/sour-milk-logistics-trailer.jpg","contentUrl":"https://sourmilkstudioos.com/media/sour-milk-logistics-trailer.mp4","uploadDate":"2026-10-13","duration":"PT16S"},"gamePlatform":["Web browser","Roblox"],"applicationCategory":"Game","operatingSystem":"Any","genre":["Simulation","Strategy"],"description":"A business simulation with a living global economy. Trade, build, invest and connect the world.","author":{"@id":"https://sourmilkstudioos.com/#org"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}},
 {"@type":"VideoGame","name":"Cook & Serve","url":"https://cookandserve.sourmilkstudioos.com/","image":"https://sourmilkstudioos.com/media/cook-and-serve-poster-v2.webp","gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","genre":["Simulation","Cooking"],"description":"A first-person cooking and restaurant game. Shop for ingredients around town, cook six cuisines, serve customers, decorate your restaurant and cook together with friends.","publisher":{"@id":"https://sourmilkstudioos.com/#org"}}
 ]}
 </script>
@@ -60,6 +60,10 @@ h1,h2,h3,h4{font-family:var(--display);font-weight:400;line-height:1.05;letter-s
 .btn.small{padding:9px 16px;font-size:.8rem}
 .btn.ghost{background:rgba(255,253,247,.18);color:var(--milk);box-shadow:inset 0 0 0 2px rgba(255,253,247,.8)}
 .btn.logi{background:#0E7C86;color:var(--milk);box-shadow:0 4px 0 #095A61}
+.btn.roblox{background:#1B1D22;color:#fff;box-shadow:0 4px 0 #000}
+.btn.roblox.big{font-size:1.15rem;padding:16px 32px}
+.btn.roblox .rbx{display:inline-block;width:14px;height:14px;background:#fff;transform:rotate(15deg);border-radius:2px;position:relative}
+.btn.roblox .rbx::after{content:"";position:absolute;inset:4.5px;background:#1B1D22}
 .btn.logi:active{box-shadow:0 1px 0 #095A61}
 .btn.cook{background:#D8452B;color:var(--milk);box-shadow:0 4px 0 #9E2E1A}
 .btn.cook:active{box-shadow:0 1px 0 #9E2E1A}
@@ -353,6 +357,7 @@ footer{background:var(--ink);color:var(--sand);padding-block:48px 24px}
             <strong>TRADE. BUILD. INVEST. CONNECT THE WORLD.</strong>
             <div class="row">
               <a class="btn play" id="play_sour_milk_logistics_home" data-track="play_sour_milk_logistics" href="https://logistics.sourmilkstudioos.com/" target="_blank" rel="noopener noreferrer">Play now <span class="arr">→</span></a>
+              <a class="btn roblox" id="play_sour_milk_logistics_roblox_home" data-track="play_sour_milk_logistics_roblox" href="https://www.roblox.com/share?code=da0eb5674bfd1c4ead7c682c4eb01ecd&amp;type=ExperienceDetails&amp;stamp=1792491128478" target="_blank" rel="noopener noreferrer"><span class="rbx" aria-hidden="true"></span> Play on Roblox</a>
               <a class="btn small" id="view_sour_milk_logistics_home" data-track="view_sour_milk_logistics" href="/games/sour-milk-logistics">Learn more</a>
             </div>
           </div>
@@ -510,6 +515,7 @@ footer{background:var(--ink);color:var(--sand);padding-block:48px 24px}
           <span class="label">Playable now</span>
           <div class="row">
             <a class="btn play big" id="play_sour_milk_logistics_games" data-track="play_sour_milk_logistics" href="https://logistics.sourmilkstudioos.com/" target="_blank" rel="noopener noreferrer">Play Sour Milk Logistics <span class="arr">→</span></a>
+            <a class="btn roblox big" id="play_sour_milk_logistics_roblox_games" data-track="play_sour_milk_logistics_roblox" href="https://www.roblox.com/share?code=da0eb5674bfd1c4ead7c682c4eb01ecd&amp;type=ExperienceDetails&amp;stamp=1792491128478" target="_blank" rel="noopener noreferrer"><span class="rbx" aria-hidden="true"></span> Play on Roblox</a>
             <a class="btn small" id="view_sour_milk_logistics_games" data-track="view_sour_milk_logistics" href="/games/sour-milk-logistics">Learn more</a>
           </div>
         </div>
@@ -829,6 +835,7 @@ footer{background:var(--ink);color:var(--sand);padding-block:48px 24px}
       <p>Run a shipping company in a living world economy. Start with two small ships, carry cargo between ten islands and grow into a global business. Play solo, or team up with up to three friends and race other teams online.</p>
       <div class="row">
         <a class="btn play big" id="play_sour_milk_logistics_hero" data-track="play_sour_milk_logistics" href="https://logistics.sourmilkstudioos.com/" target="_blank" rel="noopener noreferrer">Play now <span class="arr">→</span></a>
+        <a class="btn roblox big" id="play_sour_milk_logistics_roblox_hero" data-track="play_sour_milk_logistics_roblox" href="https://www.roblox.com/share?code=da0eb5674bfd1c4ead7c682c4eb01ecd&amp;type=ExperienceDetails&amp;stamp=1792491128478" target="_blank" rel="noopener noreferrer"><span class="rbx" aria-hidden="true"></span> Play on Roblox</a>
         <a class="btn ghost" id="watch_trailer_sour_milk_logistics" data-track="watch_trailer_sour_milk_logistics" href="#logiTrailer">▶ Watch trailer</a>
         <a class="btn ghost" id="read_guide_sour_milk_logistics_hero" data-track="read_guide_sour_milk_logistics" href="/media/sour-milk-logistics-guide.pdf" target="_blank" rel="noopener">Read the guide</a>
       </div>
@@ -917,8 +924,9 @@ footer{background:var(--ink);color:var(--sand);padding-block:48px 24px}
       </article>
       <div class="cta-band logi">
         <h3>Your trade empire starts here!</h3>
-        <p>Free to play in your browser.</p>
+        <p>Free to play in your browser or on Roblox.</p>
         <a class="btn play big" id="play_sour_milk_logistics_bottom" data-track="play_sour_milk_logistics" href="https://logistics.sourmilkstudioos.com/" target="_blank" rel="noopener noreferrer">Play now <span class="arr">→</span></a>
+        <a class="btn roblox big" id="play_sour_milk_logistics_roblox_bottom" data-track="play_sour_milk_logistics_roblox" href="https://www.roblox.com/share?code=da0eb5674bfd1c4ead7c682c4eb01ecd&amp;type=ExperienceDetails&amp;stamp=1792491128478" target="_blank" rel="noopener noreferrer"><span class="rbx" aria-hidden="true"></span> Play on Roblox</a>
       </div>
     </div>
   </section>
